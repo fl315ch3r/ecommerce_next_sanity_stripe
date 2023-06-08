@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { AiOutlineMinus, AiOutlinePlus, AiOutlineLeft, AiOutlineShopping } from 'react-icons/ai'
 import { TiDeleteOutline } from 'react-icons/ti'
+import Image from 'next/image'
+import mp_logo from '../public/assets/mercado_pago_transp_logo.png'
 
 import toast from 'react-hot-toast'
 
@@ -160,11 +162,18 @@ const Cart = () => {
                 Pay with Stripe
               </button> */}
               {!loading ? (
-                <button type='button' className='btn' onClick={() => router.push(url)} >
-                  Pay with MercadoPago
-                </button>
+                <a href={url}>
+                  <div className='btn-mp' >
+                    <Image
+                      src={ mp_logo }
+                      alt='Logo mercado pago'
+                      width='200px'
+                      height='70px'
+                    />
+                  </div>
+                </a>
               ) : (
-                <button type='button' className='btn' disabled >
+                <button type='button' className='btn-mp' disabled >
                   Getting payment link...
                 </button>
               )}
