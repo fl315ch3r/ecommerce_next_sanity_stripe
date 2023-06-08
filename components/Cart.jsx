@@ -1,4 +1,5 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { AiOutlineMinus, AiOutlinePlus, AiOutlineLeft, AiOutlineShopping } from 'react-icons/ai'
 import { TiDeleteOutline } from 'react-icons/ti'
@@ -9,13 +10,26 @@ import { useStateContext } from '../context/StateContext'
 import { urlFor } from '../lib/client'
 import getStripe from '../lib/getStripe'
 
+// import { initMercadoPago, Wallet } from '@mercadopago/sdk-react'
+
+
+
 
 const Cart = () => {
 
   const cartRef = useRef()
+  const router = useRouter()
+
   const { totalPrice, totalQuantities, cartItems, setShowCart, toggleCartItemQuantity, onRemove } = useStateContext()
 
-  const handleCheckout = async () => {
+  /* initMercadoPago(process.env.NEXT_PUBLIC_KEY) */
+
+  const [url, setUrl] = useState("")
+  const [loading, setLoading] = useState(false)
+
+
+
+  const handleStripeCheckout = async () => {
     const stripe = await getStripe()
 
     const response = await fetch('/api/stripe', {
@@ -26,14 +40,51 @@ const Cart = () => {
       body: JSON.stringify(cartItems)
     })
 
-    if(response.satusCode === 500) return
+    if (response.satusCode === 500) return
 
     const data = await response.json()
 
-    toast.loading ('Redirecting...')
+    toast.loading('Redirecting...')
 
-    stripe.redirectToCheckout( { sessionId: data.id } )
+    stripe.redirectToCheckout({ sessionId: data.id })
   }
+
+  useEffect(() => {
+    const handleMPCheckout = async () => {
+      setLoading(true)
+
+      try {
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(cartItems)
+        })
+
+        if (response.satusCode === 500) return
+
+        const data = await response.json()
+        console.log('RESPONSE: ', JSON.stringify(data))
+
+        setUrl(data.url);
+
+      } catch (error) {
+        console.error(error);
+      }
+
+      setLoading(false);
+    }
+    if (cartItems.length > 0) {
+      handleMPCheckout()
+    }
+
+
+  }, [cartItems])
+
+
+
+
 
   return (
     <div className='cart-wrapper'>
@@ -78,7 +129,7 @@ const Cart = () => {
                       <span className="minus" onClick={() => {
                         toggleCartItemQuantity(item._id, 'dec')
                       }} ><AiOutlineMinus /></span>
-                      <span className="num">{ item.quantity }</span>
+                      <span className="num">{item.quantity}</span>
                       <span className="plus" onClick={() => {
                         toggleCartItemQuantity(item._id, 'inc')
                       }} ><AiOutlinePlus /></span>
@@ -98,16 +149,26 @@ const Cart = () => {
             </div>
           ))}
         </div>
-        { cartItems.length >= 1 && (
+        {cartItems.length >= 1 && (
           <div className='cart-bottom'>
             <div className='total'>
               <h3>Subtotal:</h3>
-              <h3>${ totalPrice }</h3>
+              <h3>${totalPrice}</h3>
             </div>
             <div className='btn-container'>
-              <button type='button' className='btn' onClick={ handleCheckout } >
+              {/* <button type='button' className='btn' onClick={handleStripeCheckout} >
                 Pay with Stripe
-              </button>
+              </button> */}
+              {!loading ? (
+                <button type='button' className='btn' onClick={() => router.push(url)} >
+                  Pay with MercadoPago
+                </button>
+              ) : (
+                <button type='button' className='btn' disabled >
+                  Getting payment link...
+                </button>
+              )}
+
             </div>
           </div>
         )}
